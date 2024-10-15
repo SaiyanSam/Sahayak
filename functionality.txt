@@ -1,1 +1,2 @@
-This file will have all the dunctionalities we have come up with to implement
+This file will have all the functionalities we have come up with to implement
+Accessible to Omee

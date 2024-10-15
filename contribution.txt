@@ -1,1 +1,2 @@
 This file will have contribution from all members
+Om added 0110010011010010011010110010011000101100100110111 as binary string with char length of 7 bits in ASCII format for his roll 
