@@ -267,7 +267,7 @@ nav ul li a {
 
 /* Hero Section */
 .hero {
-    background-image: url('https://via.placeholder.com/1200x600');
+    background-image: url('images/background.png');
     background-size: cover;
     height: 600px;
     display: flex;
