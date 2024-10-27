@@ -1,2 +1,0 @@
-This file will have all the functionalities we have come up with to implement
-Accessible to Omee
