@@ -1,9 +1,0 @@
-This file will have contribution from all members
-<<<<<<< HEAD
-Om added 0110010011010010011010110010011000101100100110111 as binary string with char length of 7 bits in ASCII format for his roll 
-=======
-"Some new content" 
->>>>>>> b8adac96bf2d7ede721906c860ab12edc11e216b
-"Delete prabuddhagupta please." 
-Add GPrabuddha 
-"Added Gprabuddha" 
