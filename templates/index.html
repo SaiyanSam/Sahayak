@@ -1,75 +1,27 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>IITB Sahayak</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-</head>
-<body>
+{% extends "base.html" %}
 
-    <header class="navbar">
-        <div class="container">
-            <h1 class="logo">Sahayak</h1>
-            <nav>
-                <ul>
-                    <li><a href="{{ url_for('home') }}">Home</a></li>
-                    <li><a href="{{ url_for('home') }}">Fundraisers</a></li>
-                    <li><a href="{{ url_for('about') }}">About</a></li>
-                    <li><a href="{{ url_for('contact') }}">Contact</a></li>
-                </ul>
-            </nav>
-            <div class="auth">
-                <button class="login-btn" onclick="location.href='{{ url_for('login') }}'">Login</button>
-                <button class="fundraise-btn" onclick="location.href='{{ url_for('fundraiser_form') }}'">Start a Fundraiser</button>
-            </div>
+{% block title %}Home - IITB Sahayak{% endblock %}
+
+{% block content %}
+<section class="hero">
+    <div class="hero-content">
+        <h2>Start a Fundraiser Today</h2>
+        <p>Help others by raising funds for those in need.</p>
+        <button class="hero-btn" onclick="location.href='{{ url_for('start_fundraiser') }}'">Get Started</button>
+    </div>
+</section>
+
+<section class="fundraisers">
+    <h2 class="section-title">Recent Fundraisers</h2>
+    <div class="fundraiser-grid">
+        {% for fundraiser in fundraisers %}
+        <div class="fundraiser-card">
+            <img src="{{ url_for('static', filename='images/fundraiser_placeholder.png') }}" alt="{{ fundraiser.title }}">
+            <h3>{{ fundraiser.title }}</h3>
+            <p>{{ fundraiser.description }}</p>
+            <button class="donate-btn">Donate Now</button>
         </div>
-    </header>
-
-    <section class="hero">
-        <div class="hero-content">
-            <h2>Start a Fundraiser Today</h2>
-            <p>Help others by raising funds for those in need.</p>
-            <button class="hero-btn" onclick="location.href='{{ url_for('fundraiser_form') }}'">Get Started</button>
-        </div>
-    </section>
-
-    <section class="fundraisers">
-        <h2 class="section-title">Recent Fundraisers</h2>
-        <div class="fundraiser-grid">
-            <!-- Card 1 -->
-            <div class="fundraiser-card">
-                <img src="https://via.placeholder.com/300x200" alt="Fundraiser 1">
-                <h3>Request1</h3>
-                <p>Description1.</p>
-                <button class="donate-btn">Donate Now</button>
-            </div>
-            <!-- Card 2 -->
-            <div class="fundraiser-card">
-                <img src="https://via.placeholder.com/300x200" alt="Fundraiser 2">
-                <h3>Request2</h3>
-                <p>Description2.</p>
-                <button class="donate-btn">Donate Now</button>
-            </div>
-            <!-- Card 3 -->
-            <div class="fundraiser-card">
-                <img src="https://via.placeholder.com/300x200" alt="Fundraiser 3">
-                <h3>Request3</h3>
-                <p>Description3.</p>
-                <button class="donate-btn">Donate Now</button>
-            </div>
-        </div>
-    </section>
-
-    <footer class="footer">
-        <p>&copy; 2024 Sahayak. All Rights Reserved.</p>
-        <div class="footer-links">
-            <a href="#">Privacy Policy</a>
-            <a href="#">Terms of Service</a>
-        </div>
-    </footer>
-
-    <script src="{{ url_for('static', filename='script.js') }}"></script>
-
-</body>
-</html>
+        {% endfor %}
+    </div>
+</section>
+{% endblock %}

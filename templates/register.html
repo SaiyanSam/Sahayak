@@ -1,63 +1,85 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Register - IITB Sahayak</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-</head>
-<body>
+{% extends "base.html" %}
 
-    <header class="navbar">
-        <div class="container">
-            <h1 class="logo">Sahayak</h1>
-            <nav>
-                <ul>
-                    <li><a href="{{ url_for('home') }}">Home</a></li>
-                    <li><a href="{{ url_for('home') }}">Fundraisers</a></li>
-                    <li><a href="{{ url_for('about') }}">About</a></li>
-                    <li><a href="{{ url_for('contact') }}">Contact</a></li>
-                </ul>
-            </nav>
-        </div>
-    </header>
+{% block content %}
+<div class="container">
+    <div class="form-box">
+        <h2>Create Your Account</h2>
 
-    <section class="registration-section">
-        <div class="form-box">
-            <h2>Create Your Account</h2>
-            <form id="registerForm" action="{{ url_for('register') }}" method="POST">
-                <div class="input-group">
-                    <label for="name">Full Name:</label>
-                    <input type="text" id="name" name="name" required>
+        <!-- Flash message container -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div id="flash-messages">
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ category }}">{{ message }}</div>
+                    {% endfor %}
                 </div>
-                <div class="input-group">
-                    <label for="email">Email:</label>
-                    <input type="email" id="email" name="email" required>
-                </div>
-                <div class="input-group">
-                    <label for="password">Password:</label>
-                    <input type="password" id="password" name="password" required>
-                </div>
-                <div class="input-group">
-                    <label for="confirm_password">Confirm Password:</label>
-                    <input type="password" id="confirm_password" name="confirm_password" required>
-                </div>
-                <p id="error-message" class="error-message"></p> <!-- Error message element -->
-                <button type="submit" class="register-btn">Create Account</button>
-            </form>
+            {% endif %}
+        {% endwith %}
 
-            <p class="login-link">Already have an account? <a href="{{ url_for('login') }}">Login here</a></p>
-        </div>
-    </section>
+        <form id="registerForm" action="{{ url_for('register') }}" method="POST">
+            <div class="input-group">
+                <label for="name">Full Name:</label>
+                <input type="text" id="name" name="name" required>
+            </div>
+            <div class="input-group">
+                <label for="email">Email:</label>
+                <input type="email" id="email" name="email" required>
+            </div>
+            <div class="input-group">
+                <label for="role">Role:</label>
+                <select id="role" name="role" required>
+                    <option value="requester">Requester</option>
+                    <option value="donor">Donor</option>
+                </select>
+            </div>
+            <div class="input-group">
+                <label for="password">Password:</label>
+                <input type="password" id="password" name="password" required>
+            </div>
+            <div class="input-group">
+                <label for="confirm_password">Confirm Password:</label>
+                <input type="password" id="confirm_password" name="confirm_password" required>
+            </div>
+            <p id="error-message" class="error-message"></p> <!-- Error message element for JavaScript validation -->
+            <button type="submit" class="register-btn">Create Account</button>
+        </form>
 
-    <footer class="footer">
-        <p>&copy; 2024 Sahayak. All Rights Reserved.</p>
-        <div class="footer-links">
-            <a href="#">Privacy Policy</a>
-            <a href="#">Terms of Service</a>
-        </div>
-    </footer>
+        <p class="login-link">Already have an account? <a href="{{ url_for('login') }}">Login here</a></p>
+    </div>
+</div>
 
-    <script src="{{ url_for('static', filename='script.js') }}"></script>
-</body>
-</html>
+<script>
+// Remove flash messages after a few seconds
+setTimeout(function() {
+    const flashMessages = document.getElementById('flash-messages');
+    if (flashMessages) {
+        flashMessages.style.display = 'none';
+    }
+}, 5000); // Adjust time as needed (e.g., 5 seconds)
+
+// Password matching validation
+document.addEventListener("DOMContentLoaded", function() {
+    const registerForm = document.getElementById('registerForm');
+    const password = document.getElementById('password');
+    const confirmPassword = document.getElementById('confirm_password');
+    const errorMessage = document.getElementById('error-message');
+
+    registerForm.addEventListener('submit', function(event) {
+        if (password.value !== confirmPassword.value) {
+            event.preventDefault();  // Prevent form submission
+            errorMessage.textContent = "Passwords do not match!";
+            errorMessage.style.color = "red";
+        } else {
+            errorMessage.textContent = "";  // Clear error message if passwords match
+        }
+    });
+});
+
+// Redirect to login page after 3 seconds if registration was successful
+{% if redirect_to_login %}
+setTimeout(function() {
+    window.location.href = "{{ url_for('login') }}";
+}, 3000); // 3 seconds delay
+{% endif %}
+</script>
+{% endblock %}
