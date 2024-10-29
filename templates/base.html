@@ -19,8 +19,15 @@
                 </ul>
             </nav>
             <div class="auth">
+                {% if session.get('user_id') %}
+                <!-- Show Logout button if the user is logged in -->
+                <button class="fundraise-btn" onclick="location.href='{{ url_for('start_fundraiser') }}'">Start a Fundraiser</button>
+                <button class="login-btn" onclick="location.href='{{ url_for('logout') }}'">Logout</button>
+            {% else %}
+                <!-- Show Login button if the user is not logged in -->
                 <button class="login-btn" onclick="location.href='{{ url_for('login') }}'">Login</button>
                 <button class="fundraise-btn" onclick="location.href='{{ url_for('start_fundraiser') }}'">Start a Fundraiser</button>
+            {% endif %}
             </div>
         </div>
     </header>
