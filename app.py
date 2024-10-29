@@ -67,6 +67,7 @@ def contact():
 
 @app.route('/fundraisers')
 def fundraisers():
+    # Ordering by recent timestamp
     all_fundraisers = Fundraiser.query.order_by(Fundraiser.timestamp.desc()).all()
     return render_template('fundraisers.html', fundraisers=all_fundraisers)
 
@@ -119,10 +120,11 @@ def login():
         if user and check_password_hash(user.password, password):
             session['user_id'] = user.id
             session['user_name'] = user.name  # Optional: Store the user's name
+            session['user_role'] = user.role  # Add the user's role to the session
             flash("Login successful", "success")
             return redirect(url_for('home'))
         else:
-            flash("Invalid email or password", "danger")
+            flash("Invalid credentials. Please try again.", "danger")
             return redirect(url_for('login'))
 
     return render_template('login.html')
@@ -136,9 +138,10 @@ def logout():
     return redirect(url_for('home'))
 
 # Start Fundraiser Route (for requesters)
-@app.route('/start-fundraiser', methods=['GET', 'POST'])
+@app.route('/start_fundraiser', methods=['GET', 'POST'])
 @login_required
 def start_fundraiser():
+    # Checking if the user is logged in and has the 'requester' role
     if 'user_id' not in session or session['user_role'] != 'requester':
         flash("You need to be logged in as a requester to create a fundraiser", "danger")
         return redirect(url_for('login'))
