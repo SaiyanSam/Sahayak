@@ -1,4 +1,5 @@
 from flask import Flask, render_template, request, redirect, url_for, flash, session
+from functools import wraps
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -29,6 +30,16 @@ class Fundraiser(db.Model):
 
 with app.app_context():
     db.create_all()  # Creates tables at runtime if they don’t exist
+
+def login_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        # Check if the user is logged in
+        if 'user_id' not in session:
+            flash("You need to log in first.", "warning")
+            return redirect(url_for('login'))  # Redirect to the login page if not logged in
+        return f(*args, **kwargs)
+    return decorated_function
 
 class Donation(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -101,11 +112,13 @@ def login():
         email = request.form['email']
         password = request.form['password']
 
-        # Authenticate user
+        # Query the user from the database
         user = User.query.filter_by(email=email).first()
+        
+        # Check if user exists and the password is correct
         if user and check_password_hash(user.password, password):
             session['user_id'] = user.id
-            session['user_role'] = user.role
+            session['user_name'] = user.name  # Optional: Store the user's name
             flash("Login successful", "success")
             return redirect(url_for('home'))
         else:
@@ -124,6 +137,7 @@ def logout():
 
 # Start Fundraiser Route (for requesters)
 @app.route('/start-fundraiser', methods=['GET', 'POST'])
+@login_required
 def start_fundraiser():
     if 'user_id' not in session or session['user_role'] != 'requester':
         flash("You need to be logged in as a requester to create a fundraiser", "danger")
@@ -146,6 +160,7 @@ def start_fundraiser():
 
 # Donation Route (for donors)
 @app.route('/donate', methods=['POST'])
+@login_required
 def donate():
     if 'user_id' not in session or session['user_role'] != 'donor':
         flash("You need to be logged in as a donor to make a donation", "danger")
