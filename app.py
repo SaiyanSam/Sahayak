@@ -4,6 +4,7 @@ from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
 from werkzeug.security import generate_password_hash, check_password_hash
 import os
+from PIL import Image
 
 app = Flask(__name__)
 app.secret_key = 'qwerty'  # Change this to a secure random key
@@ -19,7 +20,8 @@ class User(db.Model):
     name = db.Column(db.String(150), nullable=False)
     email = db.Column(db.String(150), unique=True, nullable=False)
     password = db.Column(db.String(150), nullable=False)
-    role = db.Column(db.String(50), nullable=False)  # 'admin', 'requester', or 'donor'
+    role = db.Column(db.String(50), nullable=False)  # 'requester', or 'donor'
+    image_filename = db.Column(db.String(200), nullable=True)
 
 class Fundraiser(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -27,6 +29,7 @@ class Fundraiser(db.Model):
     description = db.Column(db.Text, nullable=False)
     goal = db.Column(db.Float, nullable=False)
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+    image_filename = db.Column(db.String(200), nullable=True)
 
 with app.app_context():
     db.create_all()  # Creates tables at runtime if they don’t exist
@@ -85,7 +88,7 @@ def register():
         if password != confirm_password:
             flash("Passwords do not match", "danger")
             return redirect(url_for('register'))
-
+        
         # Hash password with 'pbkdf2:sha256'
         hashed_password = generate_password_hash(password, method='pbkdf2:sha256')
 
@@ -150,9 +153,29 @@ def start_fundraiser():
         title = request.form['title']
         description = request.form['description']
         goal = request.form['goal']
+        image = request.files['image']
+
+        # Save the image if it exists
+        if image:
+            image_path = os.path.join('static/uploads', image.filename)
+            image.save(image_path)
+            
+            # Crop the image to a square using PIL
+            img = Image.open(image_path)
+            width, height = img.size
+            min_dim = min(width, height)
+            left = (width - min_dim) / 2
+            top = (height - min_dim) / 2
+            right = (width + min_dim) / 2
+            bottom = (height + min_dim) / 2
+            img_cropped = img.crop((left, top, right, bottom))
+            img_cropped.save(image_path)
 
         # Add fundraiser to the database
-        new_fundraiser = Fundraiser(title=title, description=description, goal=goal)
+        new_fundraiser = Fundraiser(title=title, 
+                                    description=description, 
+                                    goal=goal, 
+                                    image_filename=image.filename if image else None)
         db.session.add(new_fundraiser)
         db.session.commit()
 
