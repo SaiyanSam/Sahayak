@@ -16,7 +16,11 @@
     <div class="fundraiser-grid">
         {% for fundraiser in fundraisers %}
         <div class="fundraiser-card">
-            <img src="{{ url_for('static', filename='images/fundraiser_placeholder.png') }}" alt="{{ fundraiser.title }}">
+            {% if fundraiser.image_filename %}
+        	<img src="{{ url_for('static', filename='uploads/' + fundraiser.image_filename) }}" alt="{{ fundraiser.title }}">
+    	    {% else %}
+        	<img src="{{ url_for('static', filename='images/default.png') }}" alt="Default Image">
+    	    {% endif %}
             <h3>{{ fundraiser.title }}</h3>
             <p>{{ fundraiser.description }}</p>
             <button class="donate-btn">Donate Now</button>

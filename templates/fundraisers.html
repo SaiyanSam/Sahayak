@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <h2 class="section-title">Available Fundraisers</h2>
+
+    {% if fundraisers %}
+        <div class="fundraiser-grid">
+            {% for fundraiser in fundraisers %}
+                <div class="fundraiser-card">
+                    {% if fundraiser.image_filename %}
+        		<img src="{{ url_for('static', filename='uploads/' + fundraiser.image_filename) }}" alt="Fundraiser Image" class="fundraiser-image">
+    		    {% else %}
+        		<img src="{{ url_for('static', filename='images/default.jpg') }}" alt="Default Image" class="fundraiser-image">
+    		    {% endif %}
+		    <h3>{{ fundraiser.title }}</h3>
+                    <p>{{ fundraiser.description }}</p>
+                    <p><strong>Goal:</strong> ₹{{ fundraiser.goal }}</p>
+                    <p><strong>Raised:</strong> ₹{{ fundraiser.raised_amount }}</p>
+                    <button class="donate-btn">Donate</button>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <p>No fundraisers available at the moment. Check back later or start a new one!</p>
+    {% endif %}
+</div>
+
+<script>
+    // Alert for "Donate" button
+    document.addEventListener("DOMContentLoaded", function() {
+        const donateButtons = document.querySelectorAll(".donate-btn");
+        donateButtons.forEach(button => {
+            button.addEventListener("click", function() {
+                alert("Thank you for showing interest in donating! Donation functionality coming soon.");
+            });
+        });
+    });
+</script>
+{% endblock %}
