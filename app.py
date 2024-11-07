@@ -5,8 +5,14 @@ from datetime import datetime
 from werkzeug.security import generate_password_hash, check_password_hash
 import os
 from PIL import Image
+import razorpay
 
 app = Flask(__name__)
+
+app.config['RAZORPAY_KEY_ID'] = 'rzp_test_HLlStFA6bKIcsn'
+app.config['RAZORPAY_KEY_SECRET'] = 'MiNkux2q8uC7vcWhX36QO9Y6'
+razorpay_client = razorpay.Client(auth=(app.config['RAZORPAY_KEY_ID'], app.config['RAZORPAY_KEY_SECRET']))
+
 app.secret_key = 'qwerty'  # Change this to a secure random key
 basedir = os.path.abspath(os.path.dirname(__file__))
 app.config['SQLALCHEMY_DATABASE_URI'] = f"sqlite:///{os.path.join(basedir, 'instance', 'sahayak.db')}"
@@ -28,8 +34,12 @@ class Fundraiser(db.Model):
     title = db.Column(db.String(200), nullable=False)
     description = db.Column(db.Text, nullable=False)
     goal = db.Column(db.Float, nullable=False)
+    total_donated = db.Column(db.Float, default=0.0)
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
     image_filename = db.Column(db.String(200), nullable=True)
+
+    def progress_percentage(self):
+        return (self.total_donated / self.goal) * 100 if self.goal else 0
 
 with app.app_context():
     db.create_all()  # Creates tables at runtime if they don’t exist
@@ -184,23 +194,71 @@ def start_fundraiser():
 
     return render_template('fundraiser_form.html')
 
-# Donation Route (for donors)
-@app.route('/donate', methods=['POST'])
+# Donation for fundraiser
+@app.route('/donate/<int:fundraiser_id>', methods=['POST'])
 @login_required
-def donate():
-    if 'user_id' not in session or session['user_role'] != 'donor':
-        flash("You need to be logged in as a donor to make a donation", "danger")
-        return redirect(url_for('login'))
+def donate(fundraiser_id):
+    fundraiser = Fundraiser.query.get_or_404(fundraiser_id)
+    user_amount = float(request.form['amount'])
+    remaining_amount = fundraiser.goal - (fundraiser.total_donated or 0.0)
 
-    amount = float(request.form['amount'])
-    fundraiser_id = int(request.form['fundraiser_id'])
+    # Adjust the amount to be donated based on the remaining goal
+    if user_amount > remaining_amount:
+        amount_to_donate = remaining_amount
+        flash(f"The donation amount exceeds the goal by ₹{user_amount - remaining_amount}. Donating the remaining amount of ₹{remaining_amount}.", "info")
+    else:
+        amount_to_donate = user_amount
+
+    # Convert amount to paisa for Razorpay (Razorpay works in paisa)
+    amount_in_paisa = int(amount_to_donate * 100)
+    
+    # Create Razorpay Order
+    razorpay_order = razorpay_client.order.create({
+        "amount": amount_in_paisa,
+        "currency": "INR",
+        "payment_capture": "1"
+    })
+
+    # Pass required details to the template for payment
+    return render_template(
+        'payment.html', 
+        fundraiser=fundraiser,
+        razorpay_order_id=razorpay_order['id'],
+        razorpay_key=app.config['RAZORPAY_KEY_ID'],
+        amount=amount_in_paisa
+    )
+
+# Donation Route (for donors)
+#@app.route('/donate', methods=['POST'])
+#@login_required
+#def donate():
+#    if 'user_id' not in session or session['user_role'] != 'donor':
+#        flash("You need to be logged in as a donor to make a donation", "danger")
+#        return redirect(url_for('login'))
+
+#    amount = float(request.form['amount'])
+#    fundraiser_id = int(request.form['fundraiser_id'])
 
     # Record the donation
-    donation = Donation(user_id=session['user_id'], amount=amount, fundraiser_id=fundraiser_id)
-    db.session.add(donation)
-    db.session.commit()
-    flash("Donation successful!", "success")
-    return redirect(url_for('fundraisers'))
+#    donation = Donation(user_id=session['user_id'], amount=amount, fundraiser_id=fundraiser_id)
+#    db.session.add(donation)
+#    db.session.commit()
+#    flash("Donation successful!", "success")
+#    return redirect(url_for('fundraisers'))
+
+# Handling payment success
+@app.route('/payment-success', methods=['POST'])
+def payment_success():
+    data = request.get_json()
+    fundraiser = Fundraiser.query.get(data['fundraiser_id'])
+    
+    if fundraiser:
+        # Update the fundraiser's donation total
+        fundraiser.total_donated += data['amount']
+        db.session.commit()
+        
+        return {"status": "success"}, 200
+    return {"status": "failure"}, 400
 
 # Error Handlers
 @app.errorhandler(404)
