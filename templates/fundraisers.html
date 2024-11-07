@@ -1,40 +1,43 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="container">
+<section class="fundraisers">
     <h2 class="section-title">Available Fundraisers</h2>
 
-    {% if fundraisers %}
-        <div class="fundraiser-grid">
-            {% for fundraiser in fundraisers %}
-                <div class="fundraiser-card">
-                    {% if fundraiser.image_filename %}
-        		<img src="{{ url_for('static', filename='uploads/' + fundraiser.image_filename) }}" alt="Fundraiser Image" class="fundraiser-image">
-    		    {% else %}
-        		<img src="{{ url_for('static', filename='images/default.jpg') }}" alt="Default Image" class="fundraiser-image">
-    		    {% endif %}
-		    <h3>{{ fundraiser.title }}</h3>
-                    <p>{{ fundraiser.description }}</p>
-                    <p><strong>Goal:</strong> ₹{{ fundraiser.goal }}</p>
-                    <p><strong>Raised:</strong> ₹{{ fundraiser.raised_amount }}</p>
-                    <button class="donate-btn">Donate</button>
-                </div>
-            {% endfor %}
-        </div>
-    {% else %}
-        <p>No fundraisers available at the moment. Check back later or start a new one!</p>
-    {% endif %}
-</div>
+    <!-- Flash message container -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <div id="flash-messages">
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">{{ message }}</div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% endwith %}
 
-<script>
-    // Alert for "Donate" button
-    document.addEventListener("DOMContentLoaded", function() {
-        const donateButtons = document.querySelectorAll(".donate-btn");
-        donateButtons.forEach(button => {
-            button.addEventListener("click", function() {
-                alert("Thank you for showing interest in donating! Donation functionality coming soon.");
-            });
-        });
-    });
-</script>
+    <div class="fundraiser-grid">
+        {% for fundraiser in fundraisers %}
+        <div class="fundraiser-card">
+            {% if fundraiser.image_filename %}
+                <img src="{{ url_for('static', filename='uploads/' + fundraiser.image_filename) }}" alt="{{ fundraiser.title }}">
+            {% else %}
+                <img src="{{ url_for('static', filename='images/default.png') }}" alt="Default Image">
+            {% endif %}
+            <h3>{{ fundraiser.title }}</h3>
+            <p>{{ fundraiser.description }}</p>
+            <p><strong>Goal:</strong> ₹{{ fundraiser.goal }}</p>
+            <p><strong>Raised:</strong> ₹{{ fundraiser.total_donated or 0.0 }}</p>
+            <div class="progress-bar">
+                <div class="progress" style="width: {{ fundraiser.total_donated / fundraiser.goal * 100 if fundraiser.goal else 0 }}%;"></div>
+            </div>
+            
+            <form action="{{ url_for('donate', fundraiser_id=fundraiser.id) }}" method="POST">
+                <label for="amount">Amount:</label>
+                <input type="number" id="amount" name="amount" placeholder="Enter amount to donate" min="1" required>
+                <button type="submit">Proceed to Pay</button>
+            </form>
+        </div>
+        {% endfor %}
+    </div>
+</section>
 {% endblock %}

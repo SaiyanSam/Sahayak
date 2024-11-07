@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Make a Donation</title>
+    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+    <style>
+        /* Styling */
+        .donation-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #f4f4f4;
+        }
+        
+        .donation-box {
+            background-color: white;
+            padding: 40px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            max-width: 600px;
+            width: 100%;
+            text-align: center;
+        }
+        
+        .donation-box h2 {
+            margin-bottom: 20px;
+            font-size: 24px;
+            color: #333;
+        }
+        
+        .fundraiser-details p {
+            margin: 10px 0;
+            font-size: 16px;
+            color: #555;
+            text-align: left;
+        }
+        
+        .donate-btn, .cancel-btn {
+            padding: 12px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 5px;
+        }
+        
+        .donate-btn {
+            background-color: #5cb85c;
+            color: white;
+            border: none;
+        }
+        
+        .donate-btn:hover {
+            background-color: #4cae4c;
+        }
+        
+        .cancel-btn {
+            background-color: #f0f0f0;
+            color: #333;
+            border: 1px solid #ccc;
+        }
+        
+        .cancel-btn:hover {
+            background-color: #e0e0e0;
+        }
+    </style>
+</head>
+<body>
+    <div class="donation-container">
+        <div class="donation-box">
+            <h2>Donate to {{ fundraiser.title }}</h2>
+            
+            <!-- Fundraiser Details -->
+            <div class="fundraiser-details">
+                <p><strong>Description:</strong> {{ fundraiser.description }}</p>
+                <p><strong>Goal Amount:</strong> ₹{{ fundraiser.goal }}</p>
+                <p><strong>Raised So Far:</strong> ₹{{ fundraiser.total_donated }}</p>
+                <p><strong>Created On:</strong> {{ fundraiser.timestamp.strftime("%Y-%m-%d %H:%M:%S") }}</p>
+            </div>
+            
+            <!-- Donation Amount -->
+            <p><strong>Donation Amount:</strong> ₹{{ amount / 100 }}</p> <!-- Display in rupees -->
+
+            <!-- Payment Button -->
+            <button id="rzp-button1" class="donate-btn">Pay Now</button>
+            
+            <!-- Cancel Button -->
+            <button class="cancel-btn" onclick="window.location.href='{{ url_for('fundraisers') }}'">Cancel</button>
+        </div>
+    </div>
+
+    <script>
+        var options = {
+            "key": "{{ razorpay_key }}",
+            "amount": "{{ amount }}",
+            "currency": "INR",
+            "name": "{{ fundraiser.title }}",
+            "description": "Donation",
+            "order_id": "{{ razorpay_order_id }}",
+            "handler": function (response) {
+                fetch('/payment-success', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        "razorpay_payment_id": response.razorpay_payment_id,
+                        "razorpay_order_id": response.razorpay_order_id,
+                        "razorpay_signature": response.razorpay_signature,
+                        "fundraiser_id": {{ fundraiser.id }},
+                        "amount": {{ amount / 100 }}  // Send amount in rupees
+                    })
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        alert('Donation Successful!');
+                        window.location.href = '/fundraisers';
+                    } else {
+                        alert('Donation Failed. Try again.');
+                    }
+                });
+            },
+            "theme": {
+                "color": "#3399cc"
+            }
+        };
+        
+        var rzp1 = new Razorpay(options);
+        document.getElementById('rzp-button1').onclick = function(e) {
+            rzp1.open();
+            e.preventDefault();
+        }
+    </script>
+</body>
+</html>
