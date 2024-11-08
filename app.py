@@ -13,20 +13,18 @@ app.config['RAZORPAY_KEY_ID'] = 'rzp_test_HLlStFA6bKIcsn'
 app.config['RAZORPAY_KEY_SECRET'] = 'MiNkux2q8uC7vcWhX36QO9Y6'
 razorpay_client = razorpay.Client(auth=(app.config['RAZORPAY_KEY_ID'], app.config['RAZORPAY_KEY_SECRET']))
 
-app.secret_key = 'qwerty'  # Change this to a secure random key
+app.secret_key = 'qwerty'
 basedir = os.path.abspath(os.path.dirname(__file__))
 app.config['SQLALCHEMY_DATABASE_URI'] = f"sqlite:///{os.path.join(basedir, 'instance', 'sahayak.db')}"
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
 
-# Database Models
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(150), nullable=False)
     email = db.Column(db.String(150), unique=True, nullable=False)
     password = db.Column(db.String(150), nullable=False)
-    role = db.Column(db.String(50), nullable=False)  # 'requester', or 'donor'
     image_filename = db.Column(db.String(200), nullable=True)
 
 class Fundraiser(db.Model):
@@ -37,12 +35,14 @@ class Fundraiser(db.Model):
     total_donated = db.Column(db.Float, default=0.0)
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
     image_filename = db.Column(db.String(200), nullable=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)  # Foreign key to User
+    user = db.relationship('User', backref=db.backref('fundraisers', lazy=True))
 
     def progress_percentage(self):
         return (self.total_donated / self.goal) * 100 if self.goal else 0
 
 with app.app_context():
-    db.create_all()  # Creates tables at runtime if they don’t exist
+    db.create_all()
 
 def login_required(f):
     @wraps(f)
@@ -62,12 +62,15 @@ class Donation(db.Model):
     user = db.relationship('User', backref=db.backref('donations', lazy=True))
     fundraiser = db.relationship('Fundraiser', backref=db.backref('donations', lazy=True))
 
-
-# Routes
 @app.route('/')
 def home():
-    # Fetch latest 3 fundraisers ordered by timestamp
-    fundraisers = Fundraiser.query.order_by(Fundraiser.timestamp.desc()).limit(3).all()
+    if 'user_id' in session:
+        # For logged in users, show only the recentmost 3 fundraisers that do not belog to the user
+        fundraisers = Fundraiser.query.filter(Fundraiser.user_id != session['user_id']).order_by(Fundraiser.timestamp.desc()).limit(3).all()
+    else:
+        # For non-logged in users, show recentmost 3 fundraisers
+        fundraisers = Fundraiser.query.order_by(Fundraiser.timestamp.desc()).limit(3).all()
+
     return render_template('index.html', fundraisers=fundraisers)
 
 @app.route('/about')
@@ -81,6 +84,7 @@ def contact():
 @app.route('/fundraisers')
 def fundraisers():
     # Ordering by recent timestamp
+    user_id = session.get('user_id')
     all_fundraisers = Fundraiser.query.order_by(Fundraiser.timestamp.desc()).all()
     return render_template('fundraisers.html', fundraisers=all_fundraisers)
 
@@ -92,8 +96,7 @@ def register():
         email = request.form['email']
         password = request.form['password']
         confirm_password = request.form['confirm_password']
-        role = request.form['role']  # Retrieve role from the form
-
+        
         # Password matching check
         if password != confirm_password:
             flash("Passwords do not match", "danger")
@@ -109,7 +112,7 @@ def register():
             return redirect(url_for('login'))
 
         # Add user to the database
-        new_user = User(name=name, email=email, password=hashed_password, role=role)
+        new_user = User(name=name, email=email, password=hashed_password)
         db.session.add(new_user)
         db.session.commit()
         
@@ -133,7 +136,6 @@ def login():
         if user and check_password_hash(user.password, password):
             session['user_id'] = user.id
             session['user_name'] = user.name  # Optional: Store the user's name
-            session['user_role'] = user.role  # Add the user's role to the session
             flash("Login successful", "success")
             return redirect(url_for('home'))
         else:
@@ -154,11 +156,6 @@ def logout():
 @app.route('/start_fundraiser', methods=['GET', 'POST'])
 @login_required
 def start_fundraiser():
-    # Checking if the user is logged in and has the 'requester' role
-    if 'user_id' not in session or session['user_role'] != 'requester':
-        flash("You need to be logged in as a requester to create a fundraiser", "danger")
-        return redirect(url_for('login'))
-
     if request.method == 'POST':
         title = request.form['title']
         description = request.form['description']
@@ -185,7 +182,8 @@ def start_fundraiser():
         new_fundraiser = Fundraiser(title=title, 
                                     description=description, 
                                     goal=goal, 
-                                    image_filename=image.filename if image else None)
+                                    image_filename=image.filename if image else None,
+                                    user_id=session['user_id'])  # Associate with logged-in user
         db.session.add(new_fundraiser)
         db.session.commit()
 
@@ -199,34 +197,23 @@ def start_fundraiser():
 @login_required
 def donate(fundraiser_id):
     fundraiser = Fundraiser.query.get_or_404(fundraiser_id)
-    user_amount = float(request.form['amount'])
-    remaining_amount = fundraiser.goal - (fundraiser.total_donated or 0.0)
 
-    # Adjust the amount to be donated based on the remaining goal
-    if user_amount > remaining_amount:
-        amount_to_donate = remaining_amount
-        flash(f"The donation amount exceeds the goal by ₹{user_amount - remaining_amount}. Donating the remaining amount of ₹{remaining_amount}.", "info")
+    # Checking if amount has been passed
+    user_input_amount = float(request.form['amount']) if 'amount' in request.form else None
+
+    if user_input_amount:
+        remaining_goal = fundraiser.goal - (fundraiser.total_donated or 0)
+        # Checking if user input is more than the required amount to reach goal
+        amount = min(user_input_amount, remaining_goal)
     else:
-        amount_to_donate = user_amount
+        # No amount provided yet, user will enter it in `payment.html`
+        amount = None
 
-    # Convert amount to paisa for Razorpay (Razorpay works in paisa)
-    amount_in_paisa = int(amount_to_donate * 100)
-    
-    # Create Razorpay Order
-    razorpay_order = razorpay_client.order.create({
-        "amount": amount_in_paisa,
-        "currency": "INR",
-        "payment_capture": "1"
-    })
-
-    # Pass required details to the template for payment
-    return render_template(
-        'payment.html', 
-        fundraiser=fundraiser,
-        razorpay_order_id=razorpay_order['id'],
-        razorpay_key=app.config['RAZORPAY_KEY_ID'],
-        amount=amount_in_paisa
-    )
+    # Redirecting to the payment page with the fundraiser details and adjusted amount
+    return render_template('payment.html', 
+                           fundraiser=fundraiser,
+                           razorpay_key=app.config['RAZORPAY_KEY_ID'],
+                           amount=amount)
 
 # Donation Route (for donors)
 #@app.route('/donate', methods=['POST'])
