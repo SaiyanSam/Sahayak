@@ -28,14 +28,17 @@
             <p><strong>Goal:</strong> ₹{{ fundraiser.goal }}</p>
             <p><strong>Raised:</strong> ₹{{ fundraiser.total_donated or 0.0 }}</p>
             <div class="progress-bar">
-                <div class="progress" style="width: {{ fundraiser.total_donated / fundraiser.goal * 100 if fundraiser.goal else 0 }}%;"></div>
-            </div>
+    		<div class="progress" style="width: {{ (fundraiser.total_donated or 0) / fundraiser.goal * 100 if fundraiser.goal else 0 }}%;"></div>
+	    </div>
             
-            <form action="{{ url_for('donate', fundraiser_id=fundraiser.id) }}" method="POST">
-                <label for="amount">Amount:</label>
-                <input type="number" id="amount" name="amount" placeholder="Enter amount to donate" min="1" required>
-                <button type="submit">Proceed to Pay</button>
-            </form>
+	    {% if fundraiser.user_id == session['user_id'] %}
+        	<!-- Disable the donation button for the user's own fundraiser -->
+        	<p><em>You cannot donate to your own fundraiser.</em></p>
+   	    {% else %}
+            	<form action="{{ url_for('donate', fundraiser_id=fundraiser.id) }}" method="POST">
+                	<button type="submit">Donate Now</button>
+            	</form>
+	    {% endif %}
         </div>
         {% endfor %}
     </div>

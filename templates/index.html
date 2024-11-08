@@ -23,7 +23,9 @@
             {% endif %}
             <h3>{{ fundraiser.title }}</h3>
             <p>{{ fundraiser.description }}</p>
-            <button class="donate-btn" onclick="openRazorpay({{ fundraiser.id }}, '{{ fundraiser.title }}')">Donate Now</button>
+            <form action="{{ url_for('donate', fundraiser_id=fundraiser.id) }}" method="POST">
+                <button type="submit">Donate Now</button>
+            </form>
         </div>
         {% endfor %}
     </div>
@@ -32,8 +34,8 @@
 <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 <script>
     function openRazorpay(fundraiserId, fundraiserTitle) {
-        // Define a sample amount in paise (e.g., ₹1000 is 100000 paise)
-        var amount = 1000 * 100;  // Change as needed
+        // Defining a rupee 1000 in paise
+        var amount = 1000 * 100;  
 
         // Create Razorpay options
         var options = {
