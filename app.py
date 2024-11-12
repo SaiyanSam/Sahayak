@@ -88,43 +88,91 @@ def contact():
 
 @app.route('/fundraisers', methods=['GET'])
 def fundraisers():
-    # Fetch categories dynamically from the database
-    categories = db.session.query(Fundraiser.category).distinct().all()
+    # Base query for fundraisers
+    query = Fundraiser.query
+    
+    # Check if the user is logged in
+    if 'user_id' in session:
+        # Exclude user's own fundraisers if logged in
+        query = query.filter(Fundraiser.user_id != session['user_id'])
 
-    # Transform into a list of category strings
-    categories = [cat[0] for cat in categories if cat[0]]  # Avoid None values
-
-    # Apply filters, search, and sorting logic
-    query = Fundraiser.query.filter(Fundraiser.user_id != session['user_id'])
+    # Apply filters
     search = request.args.get('search', '')
     category = request.args.get('category', '')
-    sort = request.args.get('sort', '')
+    sort = request.args.get('sort', 'recent')
 
     if search:
         query = query.filter(
-            db.or_(
-                Fundraiser.title.ilike(f'%{search}%'),
-                Fundraiser.description.ilike(f'%{search}%')
-            )
+            Fundraiser.title.ilike(f"%{search}%") | Fundraiser.description.ilike(f"%{search}%")
         )
-
     if category:
         query = query.filter(Fundraiser.category == category)
-
     if sort == 'goal':
         query = query.order_by(Fundraiser.goal.desc())
     elif sort == 'donated':
         query = query.order_by(Fundraiser.total_donated.desc())
-    else:  # Default: recent
+    else:  # Default to 'recent'
         query = query.order_by(Fundraiser.timestamp.desc())
 
+    # Fetch filtered fundraisers
     fundraisers = query.all()
-
+    categories = db.session.query(Fundraiser.category.distinct()).all()
+    
     return render_template(
-        'fundraisers.html',
-        fundraisers=fundraisers,
-        categories=categories
+        'fundraisers.html', fundraisers=fundraisers, categories=categories
     )
+
+# My Fundraisers
+@app.route('/my-fundraisers')
+@login_required
+def my_fundraisers():
+    fundraisers = Fundraiser.query.filter_by(user_id=session.get('user_id')).all()
+    return render_template('my_fundraisers.html', fundraisers=fundraisers)
+
+@app.route('/edit-fundraiser/<int:fundraiser_id>', methods=['GET', 'POST'])
+@login_required
+def edit_fundraiser(fundraiser_id):
+    fundraiser = Fundraiser.query.get_or_404(fundraiser_id)
+    
+    # Ensure the user is the creator of the fundraiser
+    if fundraiser.user_id != session.get('user_id'):
+        flash("You are not authorized to edit this fundraiser.", "danger")
+        return redirect(url_for('my_fundraisers'))
+
+    if request.method == 'POST':
+        # Update fundraiser details
+        fundraiser.title = request.form['title']
+        fundraiser.description = request.form['description']
+        fundraiser.goal = float(request.form['goal'])
+
+        # Handle file upload for the fundraiser image
+        if 'image' in request.files and request.files['image'].filename != '':
+            file = request.files['image']
+            filename = secure_filename(file.filename)
+            file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+            fundraiser.image_filename = filename
+
+        db.session.commit()
+        flash("Fundraiser updated successfully!", "success")
+        return redirect(url_for('my_fundraisers'))
+
+    return render_template('edit_fundraiser.html', fundraiser=fundraiser)
+    
+@app.route('/delete-fundraiser/<int:fundraiser_id>', methods=['POST'])
+@login_required
+def delete_fundraiser(fundraiser_id):
+    fundraiser = Fundraiser.query.get_or_404(fundraiser_id)
+    
+    # Ensure the user is the creator of the fundraiser
+    if fundraiser.user_id != session.get('user_id'):
+        flash("You are not authorized to delete this fundraiser.", "danger")
+        return redirect(url_for('my_fundraisers'))
+
+    # Delete the fundraiser
+    db.session.delete(fundraiser)
+    db.session.commit()
+    flash("Fundraiser deleted successfully!", "success")
+    return redirect(url_for('my_fundraisers'))
 
 # Registration Route
 @app.route('/register', methods=['GET', 'POST'])
@@ -255,6 +303,38 @@ def donate(fundraiser_id):
                            razorpay_key=app.config['RAZORPAY_KEY_ID'],
                            amount=amount)
 
+# Handling payment success 
+@app.route('/payment-success', methods=['POST'])
+@login_required
+def payment_success():
+    data = request.get_json()
+
+    # Extract details from the Razorpay response
+    payment_id = data.get('razorpay_payment_id')
+    order_id = data.get('razorpay_order_id')
+    fundraiser_id = data.get('fundraiser_id')
+    amount = data.get('amount')
+
+    # Retrieve fundraiser and update total_donated
+    fundraiser = Fundraiser.query.get_or_404(fundraiser_id)
+    fundraiser.total_donated = (fundraiser.total_donated or 0) + amount
+
+    # Create a new donation entry in the donation table
+    new_donation = Donation(
+        user_id=session['user_id'],
+        fundraiser_id=fundraiser_id,
+        amount=amount,
+        timestamp=datetime.utcnow()
+    )
+    db.session.add(new_donation)
+    db.session.commit()
+
+    # Flash success message
+    flash("Donation successfully processed!", "success")
+
+    # Redirect to the fundraiser page
+    return jsonify({"status": "success"})
+
 # Donation Route (for donors)
 #@app.route('/donate', methods=['POST'])
 #@login_required
@@ -272,20 +352,6 @@ def donate(fundraiser_id):
 #    db.session.commit()
 #    flash("Donation successful!", "success")
 #    return redirect(url_for('fundraisers'))
-
-# Handling payment success
-@app.route('/payment-success', methods=['POST'])
-def payment_success():
-    data = request.get_json()
-    fundraiser = Fundraiser.query.get(data['fundraiser_id'])
-    
-    if fundraiser:
-        # Update the fundraiser's donation total
-        fundraiser.total_donated += data['amount']
-        db.session.commit()
-        
-        return {"status": "success"}, 200
-    return {"status": "failure"}, 400
 
 # Error Handlers
 @app.errorhandler(404)
