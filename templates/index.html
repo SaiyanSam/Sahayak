@@ -23,9 +23,7 @@
             {% endif %}
             <h3>{{ fundraiser.title }}</h3>
             <p>{{ fundraiser.description }}</p>
-            <form action="{{ url_for('donate', fundraiser_id=fundraiser.id) }}" method="POST">
-                <button type="submit">Donate Now</button>
-            </form>
+            <button class="donate-btn" onclick="openRazorpay({{ fundraiser.id }}, '{{ fundraiser.title }}')">Donate Now</button>
         </div>
         {% endfor %}
     </div>
@@ -33,19 +31,26 @@
 
 <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 <script>
-    function openRazorpay(fundraiserId, fundraiserTitle) {
-        // Defining a rupee 1000 in paise
-        var amount = 1000 * 100;  
+    // Debugging: Ensure Razorpay is loaded
+    console.log("Razorpay script loaded.");
 
-        // Create Razorpay options
+    function openRazorpay(fundraiserId, fundraiserTitle) {
+        console.log("Opening Razorpay for fundraiser:", fundraiserId, fundraiserTitle);
+
+        // Set default donation amount in paisa (e.g., ₹1000 = 1000 * 100 paisa)
+        var defaultAmount = 1000 * 100;
+
+        // Razorpay options
         var options = {
-            "key": "{{ razorpay_key }}", // Razorpay Key ID
-            "amount": amount,
+            "key": "{{ razorpay_key }}", // Razorpay API Key
+            "amount": defaultAmount,
             "currency": "INR",
             "name": fundraiserTitle,
             "description": "Donation for " + fundraiserTitle,
             "handler": function (response) {
-                // Process payment response
+                console.log("Payment successful, response:", response);
+
+                // Send payment details to the server
                 fetch('/payment-success', {
                     method: 'POST',
                     headers: {
@@ -56,17 +61,22 @@
                         "razorpay_order_id": response.razorpay_order_id,
                         "razorpay_signature": response.razorpay_signature,
                         "fundraiser_id": fundraiserId,
-                        "amount": amount / 100  // Send amount in rupees
+                        "amount": defaultAmount / 100 // Convert back to rupees
                     })
                 })
                 .then(res => res.json())
                 .then(data => {
+                    console.log("Server response:", data);
                     if (data.status === 'success') {
                         alert('Donation Successful!');
                         window.location.href = '/fundraisers';
                     } else {
-                        alert('Donation Failed. Try again.');
+                        alert('Donation Failed. Please try again.');
                     }
+                })
+                .catch(error => {
+                    console.error("Error sending payment data to server:", error);
+                    alert('An error occurred while processing the payment.');
                 });
             },
             "theme": {
@@ -74,7 +84,7 @@
             }
         };
 
-        // Open Razorpay modal
+        console.log("Opening Razorpay modal with options:", options);
         var rzp1 = new Razorpay(options);
         rzp1.open();
     }

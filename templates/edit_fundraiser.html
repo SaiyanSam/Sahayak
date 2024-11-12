@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="edit-fundraiser-section">
+    <div class="edit-fundraiser-box">
+        <h2>Edit Fundraiser</h2>
+        <form action="{{ url_for('edit_fundraiser', fundraiser_id=fundraiser.id) }}" method="POST" enctype="multipart/form-data" class="edit-fundraiser-form">
+            <div class="form-group">
+                <label for="title">Title:</label>
+                <input type="text" id="title" name="title" value="{{ fundraiser.title }}" required>
+            </div>
+            <div class="form-group">
+                <label for="description">Description:</label>
+                <textarea id="description" name="description" rows="3" required>{{ fundraiser.description }}</textarea>
+            </div>
+            <div class="form-group">
+                <label for="goal">Goal Amount (₹):</label>
+                <input type="number" id="goal" name="goal" value="{{ fundraiser.goal }}" required>
+            </div>
+            <div class="form-group">
+                <label for="image">Upload New Image (optional):</label>
+                <input type="file" id="image" name="image">
+            </div>
+            <div class="form-actions">
+                <button type="submit" class="save-btn">Save Changes</button>
+                <button type="button" class="cancel-btn" onclick="window.location.href='{{ url_for('my_fundraisers') }}'">Cancel</button>
+            </div>
+        </form>
+    </div>
+</section>
+
+<style>
+    .edit-fundraiser-section {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+        background-color: #f8f9fa;
+        padding: 20px;
+    }
+
+    .edit-fundraiser-box {
+        background-color: white;
+        padding: 30px;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        max-width: 600px;
+        width: 100%;
+    }
+
+    .edit-fundraiser-box h2 {
+        text-align: center;
+        margin-bottom: 20px;
+        color: #333;
+    }
+
+    .edit-fundraiser-form .form-group {
+        margin-bottom: 20px;
+    }
+
+    .edit-fundraiser-form label {
+        display: block;
+        font-size: 14px;
+        margin-bottom: 5px;
+        color: #555;
+    }
+
+    .edit-fundraiser-form input,
+    .edit-fundraiser-form textarea,
+    .edit-fundraiser-form button {
+        width: 100%;
+        padding: 10px;
+        font-size: 14px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+    }
+
+    .edit-fundraiser-form textarea {
+        resize: none;
+    }
+
+    .edit-fundraiser-form input:focus,
+    .edit-fundraiser-form textarea:focus {
+        border-color: #007bff;
+        outline: none;
+    }
+
+    .form-actions {
+        display: flex;
+        justify-content: space-between;
+    }
+
+    .save-btn {
+        background-color: #28a745;
+        color: white;
+        border: none;
+        cursor: pointer;
+    }
+
+    .save-btn:hover {
+        background-color: #218838;
+    }
+
+    .cancel-btn {
+        background-color: #dc3545;
+        color: white;
+        border: none;
+        cursor: pointer;
+    }
+
+    .cancel-btn:hover {
+        background-color: #c82333;
+    }
+</style>
+{% endblock %}

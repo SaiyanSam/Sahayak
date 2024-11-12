@@ -85,8 +85,8 @@
         document.getElementById('rzp-button1').onclick = function (e) {
             var amountInput = document.getElementById('amount');
             var amount = parseFloat(amountInput.value) * 100; // Convert to paisa
-            var goal = {{ fundraiser.goal }};
-            var raised = {{ fundraiser.total_donated or 0.0 }};
+            var goal = {{ fundraiser.goal | tojson }};
+            var raised = {{ fundraiser.total_donated | default(0) | tojson }};
             var remainingAmount = (goal - raised) * 100;
 
             // Validation
@@ -105,12 +105,14 @@
             }
 
             // Razorpay options
+            var fundraiserTitle = "{{ fundraiser.title }}";
+            var fundraiserId = {{ fundraiser.id }};
             var options = {
                 "key": "{{ razorpay_key }}",
                 "amount": amount,
                 "currency": "INR",
-                "name": "{{ fundraiser.title }}",
-                "description": "Donation for {{ fundraiser.title }}",
+                "name": fundraiserTitle,
+                "description": "Donation for " + fundraiserTitle,
                 "handler": function (response) {
                     fetch('/payment-success', {
                         method: 'POST',
@@ -120,9 +122,8 @@
                         body: JSON.stringify({
                             "razorpay_payment_id": response.razorpay_payment_id,
                             "razorpay_order_id": response.razorpay_order_id,
-                            "razorpay_signature": response.razorpay_signature,
-                            "fundraiser_id": {{ fundraiser.id }},
-                            "amount": amount / 100  // Send amount in rupees
+                            "fundraiser_id": fundraiserId,
+                            "amount": amount / 100
                         })
                     })
                     .then(res => res.json())

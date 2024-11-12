@@ -14,7 +14,13 @@
             <nav>
                 <ul>
                     <li><a href="{{ url_for('home') }}">Home</a></li>
-                    <li><a href="{{ url_for('fundraisers') }}">Fundraisers</a></li>
+                    <li class="dropdown">
+			<a href="#" class="dropbtn">Fundraisers</a>
+            		<div class="dropdown-content">
+                		<a href="{{ url_for('my_fundraisers') }}">My Fundraisers</a>
+                		<a href="{{ url_for('fundraisers') }}">Fundraisers to Donate</a>
+            		</div>
+        	    </li>
                     <li><a href="{{ url_for('about') }}">About</a></li>
                     <li><a href="{{ url_for('contact') }}">Contact</a></li>
                 </ul>
