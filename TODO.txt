@@ -1,0 +1,6 @@
+1. homepage donate buttons not working
+2. after a fundraiser is deleted, I still want it in my database, do it like flag field in database of fundraoser, flag= active/finished/deleted
+3. cancel button in edit my fundraiser
+4. the category filter isn't working
+5. the hover fundraiser needs to be improved
+6. contact us make it functional.
