@@ -6,6 +6,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 import os
 from PIL import Image
 import razorpay
+import logging
 
 app = Flask(__name__)
 
@@ -35,11 +36,23 @@ class Fundraiser(db.Model):
     total_donated = db.Column(db.Float, default=0.0)
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
     image_filename = db.Column(db.String(200), nullable=True)
+    category = db.Column(db.String(100), nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)  # Foreign key to User
+    
     user = db.relationship('User', backref=db.backref('fundraisers', lazy=True))
 
     def progress_percentage(self):
         return (self.total_donated / self.goal) * 100 if self.goal else 0
+
+class Donation(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    amount = db.Column(db.Float, nullable=False)
+    fundraiser_id = db.Column(db.Integer, db.ForeignKey('fundraiser.id'), nullable=False)
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    user = db.relationship('User', backref=db.backref('donations', lazy=True))
+    fundraiser = db.relationship('Fundraiser', backref=db.backref('donations', lazy=True))
 
 with app.app_context():
     db.create_all()
@@ -53,14 +66,6 @@ def login_required(f):
             return redirect(url_for('login'))  # Redirect to the login page if not logged in
         return f(*args, **kwargs)
     return decorated_function
-
-class Donation(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    amount = db.Column(db.Float, nullable=False)
-    fundraiser_id = db.Column(db.Integer, db.ForeignKey('fundraiser.id'), nullable=False)
-    user = db.relationship('User', backref=db.backref('donations', lazy=True))
-    fundraiser = db.relationship('Fundraiser', backref=db.backref('donations', lazy=True))
 
 @app.route('/')
 def home():
@@ -81,12 +86,45 @@ def about():
 def contact():
     return render_template('contact.html')
 
-@app.route('/fundraisers')
+@app.route('/fundraisers', methods=['GET'])
 def fundraisers():
-    # Ordering by recent timestamp
-    user_id = session.get('user_id')
-    all_fundraisers = Fundraiser.query.order_by(Fundraiser.timestamp.desc()).all()
-    return render_template('fundraisers.html', fundraisers=all_fundraisers)
+    # Fetch categories dynamically from the database
+    categories = db.session.query(Fundraiser.category).distinct().all()
+
+    # Transform into a list of category strings
+    categories = [cat[0] for cat in categories if cat[0]]  # Avoid None values
+
+    # Apply filters, search, and sorting logic
+    query = Fundraiser.query.filter(Fundraiser.user_id != session['user_id'])
+    search = request.args.get('search', '')
+    category = request.args.get('category', '')
+    sort = request.args.get('sort', '')
+
+    if search:
+        query = query.filter(
+            db.or_(
+                Fundraiser.title.ilike(f'%{search}%'),
+                Fundraiser.description.ilike(f'%{search}%')
+            )
+        )
+
+    if category:
+        query = query.filter(Fundraiser.category == category)
+
+    if sort == 'goal':
+        query = query.order_by(Fundraiser.goal.desc())
+    elif sort == 'donated':
+        query = query.order_by(Fundraiser.total_donated.desc())
+    else:  # Default: recent
+        query = query.order_by(Fundraiser.timestamp.desc())
+
+    fundraisers = query.all()
+
+    return render_template(
+        'fundraisers.html',
+        fundraisers=fundraisers,
+        categories=categories
+    )
 
 # Registration Route
 @app.route('/register', methods=['GET', 'POST'])
@@ -160,6 +198,7 @@ def start_fundraiser():
         title = request.form['title']
         description = request.form['description']
         goal = request.form['goal']
+        category = request.form['category']
         image = request.files['image']
 
         # Save the image if it exists
@@ -183,6 +222,7 @@ def start_fundraiser():
                                     description=description, 
                                     goal=goal, 
                                     image_filename=image.filename if image else None,
+                                    category=category,
                                     user_id=session['user_id'])  # Associate with logged-in user
         db.session.add(new_fundraiser)
         db.session.commit()
