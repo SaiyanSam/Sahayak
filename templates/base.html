@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}IITB Sahayak{% endblock %}</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}">
 </head>
 <body>
     <header class="navbar">
@@ -23,11 +24,11 @@
                 <!-- Show Logout button if the user is logged in -->
                 <button class="fundraise-btn" onclick="location.href='{{ url_for('start_fundraiser') }}'">Start a Fundraiser</button>
                 <button class="login-btn" onclick="location.href='{{ url_for('logout') }}'">Logout</button>
-            {% else %}
+                {% else %}
                 <!-- Show Login button if the user is not logged in -->
                 <button class="login-btn" onclick="location.href='{{ url_for('login') }}'">Login</button>
                 <button class="fundraise-btn" onclick="location.href='{{ url_for('start_fundraiser') }}'">Start a Fundraiser</button>
-            {% endif %}
+                {% endif %}
             </div>
         </div>
     </header>

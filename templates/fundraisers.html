@@ -15,32 +15,70 @@
         {% endif %}
     {% endwith %}
 
-    <div class="fundraiser-grid">
-        {% for fundraiser in fundraisers %}
-        <div class="fundraiser-card">
-            {% if fundraiser.image_filename %}
-                <img src="{{ url_for('static', filename='uploads/' + fundraiser.image_filename) }}" alt="{{ fundraiser.title }}">
-            {% else %}
-                <img src="{{ url_for('static', filename='images/default.png') }}" alt="Default Image">
-            {% endif %}
-            <h3>{{ fundraiser.title }}</h3>
-            <p>{{ fundraiser.description }}</p>
-            <p><strong>Goal:</strong> ₹{{ fundraiser.goal }}</p>
-            <p><strong>Raised:</strong> ₹{{ fundraiser.total_donated or 0.0 }}</p>
-            <div class="progress-bar">
-    		<div class="progress" style="width: {{ (fundraiser.total_donated or 0) / fundraiser.goal * 100 if fundraiser.goal else 0 }}%;"></div>
-	    </div>
+    <!-- Filter, Search, and Sort Section -->
+    <form method="GET" action="{{ url_for('fundraisers') }}" class="filter-form">
+        <div class="filter-group">
+            <input 
+                type="text" 
+                name="search" 
+                placeholder="Search by title or description" 
+                value="{{ request.args.get('search', '') }}" 
+                class="filter-input"
+            >
             
-	    {% if fundraiser.user_id == session['user_id'] %}
-        	<!-- Disable the donation button for the user's own fundraiser -->
-        	<p><em>You cannot donate to your own fundraiser.</em></p>
-   	    {% else %}
-            	<form action="{{ url_for('donate', fundraiser_id=fundraiser.id) }}" method="POST">
-                	<button type="submit">Donate Now</button>
-            	</form>
-	    {% endif %}
+            <label for="category">Category:</label>
+            <select name="category" id="category" class="filter-dropdown">
+                <option value="">All Categories</option>
+                {% for cat in categories %}
+                <option value="{{ cat.category }}" {% if request.args.get('category') == cat.category %}selected{% endif %}>
+                    {{ cat.category }}
+                </option>
+                {% endfor %}
+            </select>
+            
+            <label for="sort">Sort By:</label>
+            <select name="sort" id="sort" class="filter-dropdown">
+                <option value="recent" {% if request.args.get('sort') == 'recent' %}selected{% endif %}>Most Recent</option>
+                <option value="goal" {% if request.args.get('sort') == 'goal' %}selected{% endif %}>Highest Goal</option>
+                <option value="donated" {% if request.args.get('sort') == 'donated' %}selected{% endif %}>Most Donations Raised</option>
+            </select>
+
+            <button type="submit" class="filter-btn">Filter</button>
         </div>
-        {% endfor %}
+    </form>
+
+    <!-- Fundraisers Grid -->
+    <div class="fundraiser-grid">
+        {% if fundraisers %}
+            {% for fundraiser in fundraisers %}
+            <div class="fundraiser-card">
+                {% if fundraiser.image_filename %}
+                    <img src="{{ url_for('static', filename='uploads/' + fundraiser.image_filename) }}" alt="{{ fundraiser.title }}">
+                {% else %}
+                    <img src="{{ url_for('static', filename='images/default.png') }}" alt="Default Image">
+                {% endif %}
+                <h3>{{ fundraiser.title }}</h3>
+                <p>{{ fundraiser.description }}</p>
+                <p><strong>Goal:</strong> ₹{{ fundraiser.goal }}</p>
+                <p><strong>Raised:</strong> ₹{{ fundraiser.total_donated or 0.0 }}</p>
+                <div class="progress-bar">
+                    <div class="progress" style="width: {{ (fundraiser.total_donated or 0) / fundraiser.goal * 100 if fundraiser.goal else 0 }}%;"></div>
+                </div>
+                
+                {% if fundraiser.user_id == session['user_id'] %}
+                    <!-- Disable the donation button for the user's own fundraiser -->
+                    <p><em>You cannot donate to your own fundraiser.</em></p>
+                {% else %}
+                    <form action="{{ url_for('donate', fundraiser_id=fundraiser.id) }}" method="POST">
+                        <button type="submit" class="donate-btn">Donate Now</button>
+                    </form>
+                {% endif %}
+            </div>
+            {% endfor %}
+        {% else %}
+            <!-- Message if no fundraisers are available -->
+            <p class="no-fundraisers-message">No fundraisers available at the moment. Please check back later.</p>
+        {% endif %}
     </div>
 </section>
 {% endblock %}
