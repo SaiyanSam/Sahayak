@@ -123,7 +123,18 @@ nav ul li a {
     cursor: pointer;
     margin-top: 20px;
     font-size: 18px;
+    animation: pulse 3.0s infinite;
 }
+
+@keyframes pulse {
+    0%, 100% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.1);
+    }
+}
+
 
 /* Fundraisers Section */
 .fundraisers {
@@ -154,7 +165,7 @@ nav ul li a {
     border-radius: 8px;
     padding: 20px;
     text-align: center;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    transition: transform 0.3s, box-shadow 0.3s;
 }
 
 .fundraiser-card img {
@@ -162,6 +173,18 @@ nav ul li a {
     height: 200px; 
     object-fit: cover;
     border-radius: 4px;
+    transition: transform 0.3s, filter 0.3s;
+}
+
+.fundraiser-card:hover img {
+    transform: scale(1.05);
+    filter: brightness(0.9);
+}
+
+.fundraiser-card:hover {
+    background-color: #f9f9f9;
+    transform: scale(1.05);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
 }
 
 .no-fundraisers-message {
@@ -176,13 +199,105 @@ nav ul li a {
 }
 
 .donate-btn {
-    background-color: #5cb85c;
+    position: relative;
+    display: inline-block;
+    padding: 12px 20px;
+    font-size: 16px;
+    font-weight: bold;
+    color: #fff;
+    background-color: #28a745;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    overflow: hidden;
+    transition: background-color 0.3s ease;
+    z-index: 1;
+}
+
+.donate-btn:hover {
+    background-color: #218838; /* Slightly darker green for hover */
+}
+
+/* Shine Effect */
+.donate-btn::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: -250%; /* Start further left for less shine */
+    width: 200%; /* Control the width of the shine */
+    height: 100%;
+    background: linear-gradient(
+        120deg,
+        rgba(255, 255, 255, 0.1) 0%,  /* Reduced opacity for less shine */
+        rgba(255, 255, 255, 0.5) 50%, /* Adjusted midpoint opacity */
+        rgba(255, 255, 255, 0.1) 100%
+    );
+    transform: skewX(-45deg);
+    transition: all 0.3s ease;
+    z-index: 0;
+}
+
+/* New Fundraiser Styling */
+.create-fundraiser-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 80vh;
+    background-color: #f8f9fa;
+    padding: 40px 20px;
+}
+
+.create-fundraiser-section h2 {
+    margin-bottom: 20px;
+    font-size: 24px;
+    text-align: center;
+}
+
+.create-fundraiser-section form {
+    max-width: 600px;
+    width: 100%;
+    background: #fff;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.create-fundraiser-section label {
+    display: block;
+    margin: 10px 0 5px;
+    font-weight: bold;
+}
+
+.create-fundraiser-section input,
+.create-fundraiser-section textarea,
+.create-fundraiser-section select {
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 15px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+.create-fundraiser-section button {
+    padding: 12px 20px;
+    background-color: #28a745;
     color: white;
     border: none;
-    padding: 10px 20px;
-    cursor: pointer;
     border-radius: 4px;
-    margin-top: 10px;
+    cursor: pointer;
+    font-size: 16px;
+    width: 100%;
+}
+
+.create-fundraiser-section button:hover {
+    background-color: #218838;
+}
+
+/* Add the animation on hover */
+.donate-btn:hover::before {
+    left: 100%; /* Move across the button */
+    transition: all 0.5s ease; /* Smooth shine effect */
 }
 
 .progress-bar {
@@ -196,6 +311,11 @@ nav ul li a {
     background-color: #5cb85c;
     height: 100%;
     border-radius: 5px;
+    transition: width 0.3s, background-color 0.3s;
+}
+
+.fundraiser-card:hover .progress-bar {
+    background-color: #ff4d4d;
 }
 
 .filter-form {
@@ -432,25 +552,25 @@ nav ul li a {
 }
 
 /* Registration Section */
+
 .registration-section {
     display: flex;
-    justify-content: center;
+    flex-direction: column;
     align-items: center;
-    min-height: 100vh; /* Full height of the viewport */
-    background-color: #f4f4f4;
-    margin: 0; /* Ensure no extra margin */
+    justify-content: center;
+    min-height: 80vh;
+    background-color: #f8f9fa;
+    padding: 40px 20px;
 }
 
-.form-box {
+.registration-section .form-box {
+    margin: 0;
+    padding: 20px; 
     background-color: white;
-    padding: 40px;
-    border: 1px solid #ddd;
     border-radius: 8px;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-    max-width: 600px;
+    max-width: 500px; 
     width: 100%;
-    text-align: center;
-    margin: 20px; /* Add margin to avoid it being flush against the edges */
 }
 
 .register-btn {
