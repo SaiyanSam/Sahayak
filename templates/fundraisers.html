@@ -51,6 +51,7 @@
     <div class="fundraiser-grid">
         {% if fundraisers %}
             {% for fundraiser in fundraisers %}
+	    {% if fundraiser.flag == 'active' %}
             <div class="fundraiser-card">
                 {% if fundraiser.image_filename %}
                     <img src="{{ url_for('static', filename='uploads/' + fundraiser.image_filename) }}" alt="{{ fundraiser.title }}">
