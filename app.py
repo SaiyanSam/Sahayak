@@ -59,6 +59,10 @@ class Donation(db.Model):
 with app.app_context():
     db.create_all()
 
+@app.route('/static/<path:filename>')
+def static_files(filename):
+    return send_from_directory(app.static_folder, filename)
+
 def login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
@@ -88,28 +92,11 @@ def about():
 def contact():
     return render_template('contact.html')
 
-def update_fundraiser_flags():
-
-    # Define the query to update the flag for finished fundraisers
-    update_query = text("""
-        UPDATE fundraiser
-        SET flag = 'finished'
-        WHERE total_donated >= goal
-        and flag == 'active';
-    """)
-
-    # Execute the query
-    with engine.connect() as conn:
-        conn.execute(update_query)
-        conn.commit()  # Explicitly commit changes
-
-    # Commit the changes to save them in the database
-    engine.dispose()
 
 @app.route('/fundraisers', methods=['GET'])
 def fundraisers():
     # Update fundraiser flags
-    update_fundraiser_flags()
+    #update_fundraiser_flags()
 
     # Debug: Log all fundraisers and their flags
     all_fundraisers = Fundraiser.query.all()
