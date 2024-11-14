@@ -2,6 +2,7 @@ from flask import Flask, render_template, request, redirect, url_for, flash, ses
 from functools import wraps
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
+from sqlalchemy import text
 from werkzeug.security import generate_password_hash, check_password_hash
 import os
 from PIL import Image
@@ -38,6 +39,7 @@ class Fundraiser(db.Model):
     image_filename = db.Column(db.String(200), nullable=True)
     category = db.Column(db.String(100), nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)  # Foreign key to User
+    flag = db.Column(db.String(10), default='active')  # 'active', 'finished', 'deleted'
     
     user = db.relationship('User', backref=db.backref('fundraisers', lazy=True))
 
@@ -48,7 +50,7 @@ class Donation(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     amount = db.Column(db.Float, nullable=False)
-    fundraiser_id = db.Column(db.Integer, db.ForeignKey('fundraiser.id'), nullable=False)
+    fundraiser_id = db.Column(db.Integer, db.ForeignKey('fundraiser.id', ondelete='CASCADE'), nullable=False)
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
     
     user = db.relationship('User', backref=db.backref('donations', lazy=True))
@@ -86,11 +88,37 @@ def about():
 def contact():
     return render_template('contact.html')
 
+def update_fundraiser_flags():
+
+    # Define the query to update the flag for finished fundraisers
+    update_query = text("""
+        UPDATE fundraiser
+        SET flag = 'finished'
+        WHERE total_donated >= goal
+        and flag == 'active';
+    """)
+
+    # Execute the query
+    with engine.connect() as conn:
+        conn.execute(update_query)
+        conn.commit()  # Explicitly commit changes
+
+    # Commit the changes to save them in the database
+    engine.dispose()
+
 @app.route('/fundraisers', methods=['GET'])
 def fundraisers():
-    # Base query for fundraisers
-    query = Fundraiser.query
-    
+    # Update fundraiser flags
+    update_fundraiser_flags()
+
+    # Debug: Log all fundraisers and their flags
+    all_fundraisers = Fundraiser.query.all()
+    for fundraiser in all_fundraisers:
+        print(f"Fundraiser ID: {fundraiser.id}, Title: {fundraiser.title}, Flag: {fundraiser.flag}, Total Donated: {fundraiser.total_donated}, Goal: {fundraiser.goal}")
+
+    # Query for active fundraisers
+    query = Fundraiser.query.filter_by(flag='active')
+
     # Check if the user is logged in
     if 'user_id' in session:
         # Exclude user's own fundraisers if logged in
@@ -161,17 +189,26 @@ def edit_fundraiser(fundraiser_id):
 @app.route('/delete-fundraiser/<int:fundraiser_id>', methods=['POST'])
 @login_required
 def delete_fundraiser(fundraiser_id):
-    fundraiser = Fundraiser.query.get_or_404(fundraiser_id)
-    
-    # Ensure the user is the creator of the fundraiser
-    if fundraiser.user_id != session.get('user_id'):
-        flash("You are not authorized to delete this fundraiser.", "danger")
-        return redirect(url_for('my_fundraisers'))
+    try:
+        # Fetch the fundraiser by ID
+        fundraiser = Fundraiser.query.get_or_404(fundraiser_id)
 
-    # Delete the fundraiser
-    db.session.delete(fundraiser)
-    db.session.commit()
-    flash("Fundraiser deleted successfully!", "success")
+        # Check if the logged-in user is the owner of the fundraiser
+        if fundraiser.user_id != session.get('user_id'):
+            flash("You don't have permission to delete this fundraiser.", "danger")
+            return redirect(url_for('my_fundraisers'))
+
+        # Mark the fundraiser as 'deleted' (soft delete)
+        fundraiser.flag = 'deleted'
+
+        # Commit the changes to the database
+        db.session.commit()
+
+        flash("Fundraiser successfully marked as deleted.", "success")
+    except Exception as e:
+        logging.error(f"Error deleting fundraiser: {e}")
+        flash("An error occurred while trying to delete the fundraiser.", "danger")
+
     return redirect(url_for('my_fundraisers'))
 
 # Registration Route
@@ -286,6 +323,10 @@ def start_fundraiser():
 def donate(fundraiser_id):
     fundraiser = Fundraiser.query.get_or_404(fundraiser_id)
 
+    if fundraiser.flag != 'active':
+        flash("Donations are no longer accepted for this fundraiser.", "warning")
+        return redirect(url_for('fundraisers'))
+        
     # Checking if amount has been passed
     user_input_amount = float(request.form['amount']) if 'amount' in request.form else None
 
@@ -313,7 +354,7 @@ def payment_success():
     payment_id = data.get('razorpay_payment_id')
     order_id = data.get('razorpay_order_id')
     fundraiser_id = data.get('fundraiser_id')
-    amount = data.get('amount')
+    amount = float(data.get('amount'))
 
     # Retrieve fundraiser and update total_donated
     fundraiser = Fundraiser.query.get_or_404(fundraiser_id)
@@ -327,13 +368,18 @@ def payment_success():
         timestamp=datetime.utcnow()
     )
     db.session.add(new_donation)
+
+    # Check if the fundraiser goal is met
+    if int(fundraiser.total_donated) >= int(fundraiser.goal):
+        fundraiser.flag = 'finished'
+            
     db.session.commit()
 
     # Flash success message
     flash("Donation successfully processed!", "success")
 
-    # Redirect to the fundraiser page
-    return jsonify({"status": "success"})
+    # Return success response
+    return jsonify({"status": "success", "redirect": url_for('fundraisers')})
 
 # Donation Route (for donors)
 #@app.route('/donate', methods=['POST'])
