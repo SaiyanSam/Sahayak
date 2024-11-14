@@ -6,6 +6,70 @@
     font-family: Arial, sans-serif;
 }
 
+header {
+    position: fixed;
+    top: 0;
+    width: 100%;
+    z-index: 1000;
+    background-color: white; /* To keep the background visible */
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Adds a shadow for visibility */
+    padding: 5px 0;
+}
+
+body {
+    padding-top: 80px; /* Adjust this to the height of the header row */
+}
+
+header .container {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 5px 20px;
+}
+
+header a {
+    text-decoration: none;
+    color: #333;
+    margin: 0 10px;
+}
+
+header a:hover {
+    color: #007bff; /* Optional: Add hover effects for navigation links */
+}
+
+header .btn-container {
+    display: flex;
+    gap: 10px;
+}
+
+header .btn-container .btn {
+    padding: 8px 15px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: bold;
+}
+
+header .btn-container .btn-login {
+    background-color: #007bff;
+    color: white;
+}
+
+header .btn-container .btn-login:hover {
+    background-color: #0056b3;
+}
+
+header .btn-container .btn-start {
+    background-color: #28a745;
+    color: white;
+}
+
+header .btn-container .btn-start:hover {
+    background-color: #1e7e34;
+}
+
 /* Navbar styling */
 .navbar {
     background-color: #fff;
@@ -677,6 +741,58 @@ nav ul li a {
         
 .cancel-btn:hover {
 	background-color: #e0e0e0;
+}
+
+/* Edit Fundraiser Form */
+.action-buttons {
+        margin-top: 15px;
+        display: flex;
+        gap: 10px;
+        justify-content: center;
+}
+
+.edit-btn,
+.delete-btn {
+        padding: 10px 20px;
+        text-decoration: none;
+        font-size: 14px;
+        font-weight: bold;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        text-align: center;
+        transition: background-color 0.3s, color 0.3s, box-shadow 0.3s;
+}
+
+.edit-btn {
+        background-color: #007bff !important;
+        color: white !important;
+}
+
+.edit-btn:hover {
+        background-color: #0056b3 !important;
+        box-shadow: 0 4px 8px rgba(0, 91, 187, 0.3);
+}
+
+.delete-btn {
+        background-color: #dc3545 !important;
+        color: white !important;
+}
+
+.delete-btn:hover {
+        background-color: #a71d2a !important;
+        box-shadow: 0 4px 8px rgba(220, 53, 69, 0.3);
+}
+
+.deleted-msg {
+        color: #dc3545;
+        font-weight: bold;
+}
+
+.no-fundraisers-message {
+        font-size: 16px;
+        color: #555;
+        margin-top: 20px;
 }
 
 /* Footer */
