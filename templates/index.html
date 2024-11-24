@@ -14,30 +14,36 @@
 <section class="fundraisers">
     <h2 class="section-title">Recent Fundraisers</h2>
     <div class="fundraiser-grid">
-        {% for fundraiser in fundraisers %}
-        <div class="fundraiser-card">
-            {% if fundraiser.image_filename %}
-            <img src="{{ url_for('static', filename='uploads/' + fundraiser.image_filename) }}" alt="{{ fundraiser.title }}">
-            {% else %}
-            <img src="{{ url_for('static', filename='images/default.png') }}" alt="Default Image">
-            {% endif %}
-            <h3>{{ fundraiser.title }}</h3>
-            <p>{{ fundraiser.description }}</p>
-            <button class="donate-btn" onclick="openRazorpay({{ fundraiser.id }}, '{{ fundraiser.title }}')">Donate Now</button>
-        </div>
-        {% endfor %}
+        {% if fundraisers %}
+            {% for fundraiser in fundraisers %}
+            <div class="fundraiser-card">
+                {% if fundraiser.image_filename %}
+                <img src="{{ url_for('static', filename='uploads/' + fundraiser.image_filename) }}" alt="{{ fundraiser.title }}">
+                {% else %}
+                <img src="{{ url_for('static', filename='images/default.png') }}" alt="Default Image">
+                {% endif %}
+                <h3>{{ fundraiser.title }}</h3>
+                <p>{{ fundraiser.description }}</p>
+                <p><strong>Goal:</strong> ₹{{ fundraiser.goal }}</p>
+                <p><strong>Raised:</strong> ₹{{ fundraiser.total_donated or 0.0 }}</p>
+                <div class="progress-bar">
+                    <div class="progress" style="width: {{ (fundraiser.total_donated or 0) / fundraiser.goal * 100 if fundraiser.goal else 0 }}%;"></div>
+                </div>
+                <form action="{{ url_for('donate', fundraiser_id=fundraiser.id) }}" method="POST">
+                        <button type="submit" class="donate-btn">Donate Now</button>
+                </form>
+            </div>
+            {% endfor %}
+        {% else %}
+        <p class="no-fundraisers-message">No active fundraisers available at the moment.</p>
+        {% endif %}
     </div>
 </section>
 
 <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 <script>
-    // Debugging: Ensure Razorpay is loaded
-    console.log("Razorpay script loaded.");
-
     function openRazorpay(fundraiserId, fundraiserTitle) {
-        console.log("Opening Razorpay for fundraiser:", fundraiserId, fundraiserTitle);
-
-        // Set default donation amount in paisa (e.g., ₹1000 = 1000 * 100 paisa)
+        // Default donation amount in paisa (e.g., ₹1000 = 1000 * 100 paisa)
         var defaultAmount = 1000 * 100;
 
         // Razorpay options
@@ -48,9 +54,6 @@
             "name": fundraiserTitle,
             "description": "Donation for " + fundraiserTitle,
             "handler": function (response) {
-                console.log("Payment successful, response:", response);
-
-                // Send payment details to the server
                 fetch('/payment-success', {
                     method: 'POST',
                     headers: {
@@ -66,7 +69,6 @@
                 })
                 .then(res => res.json())
                 .then(data => {
-                    console.log("Server response:", data);
                     if (data.status === 'success') {
                         alert('Donation Successful!');
                         window.location.href = '/fundraisers';
@@ -84,7 +86,6 @@
             }
         };
 
-        console.log("Opening Razorpay modal with options:", options);
         var rzp1 = new Razorpay(options);
         rzp1.open();
     }
