@@ -16,78 +16,29 @@
     <div class="fundraiser-grid">
         {% if fundraisers %}
             {% for fundraiser in fundraisers %}
-            <div class="fundraiser-card">
-                {% if fundraiser.image_filename %}
-                <img src="{{ url_for('static', filename='uploads/' + fundraiser.image_filename) }}" alt="{{ fundraiser.title }}">
-                {% else %}
-                <img src="{{ url_for('static', filename='images/default.png') }}" alt="Default Image">
-                {% endif %}
-                <h3>{{ fundraiser.title }}</h3>
-                <p>{{ fundraiser.description }}</p>
-                <p><strong>Goal:</strong> ₹{{ fundraiser.goal }}</p>
-                <p><strong>Raised:</strong> ₹{{ fundraiser.total_donated or 0.0 }}</p>
-                <div class="progress-bar">
-                    <div class="progress" style="width: {{ (fundraiser.total_donated or 0) / fundraiser.goal * 100 if fundraiser.goal else 0 }}%;"></div>
-                </div>
-                <form action="{{ url_for('donate', fundraiser_id=fundraiser.id) }}" method="POST">
+                {% if fundraiser.flag == 'active' %}
+                <div class="fundraiser-card">
+                    {% if fundraiser.image_filename %}
+                    <img src="{{ url_for('static', filename='uploads/' + fundraiser.image_filename) }}" alt="{{ fundraiser.title }}">
+                    {% else %}
+                    <img src="{{ url_for('static', filename='images/default.png') }}" alt="Default Image">
+                    {% endif %}
+                    <h3>{{ fundraiser.title }}</h3>
+                    <p>{{ fundraiser.description }}</p>
+                    <p><strong>Goal:</strong> ₹{{ fundraiser.goal }}</p>
+                    <p><strong>Raised:</strong> ₹{{ fundraiser.total_donated or 0.0 }}</p>
+                    <div class="progress-bar">
+                        <div class="progress" style="width: {{ (fundraiser.total_donated or 0) / fundraiser.goal * 100 if fundraiser.goal else 0 }}%;"></div>
+                    </div>
+                    <form action="{{ url_for('donate', fundraiser_id=fundraiser.id) }}" method="POST">
                         <button type="submit" class="donate-btn">Donate Now</button>
-                </form>
-            </div>
+                    </form>
+                </div>
+                {% endif %}
             {% endfor %}
         {% else %}
         <p class="no-fundraisers-message">No active fundraisers available at the moment.</p>
         {% endif %}
     </div>
 </section>
-
-<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
-<script>
-    function openRazorpay(fundraiserId, fundraiserTitle) {
-        // Default donation amount in paisa (e.g., ₹1000 = 1000 * 100 paisa)
-        var defaultAmount = 1000 * 100;
-
-        // Razorpay options
-        var options = {
-            "key": "{{ razorpay_key }}", // Razorpay API Key
-            "amount": defaultAmount,
-            "currency": "INR",
-            "name": fundraiserTitle,
-            "description": "Donation for " + fundraiserTitle,
-            "handler": function (response) {
-                fetch('/payment-success', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        "razorpay_payment_id": response.razorpay_payment_id,
-                        "razorpay_order_id": response.razorpay_order_id,
-                        "razorpay_signature": response.razorpay_signature,
-                        "fundraiser_id": fundraiserId,
-                        "amount": defaultAmount / 100 // Convert back to rupees
-                    })
-                })
-                .then(res => res.json())
-                .then(data => {
-                    if (data.status === 'success') {
-                        alert('Donation Successful!');
-                        window.location.href = '/fundraisers';
-                    } else {
-                        alert('Donation Failed. Please try again.');
-                    }
-                })
-                .catch(error => {
-                    console.error("Error sending payment data to server:", error);
-                    alert('An error occurred while processing the payment.');
-                });
-            },
-            "theme": {
-                "color": "#3399cc"
-            }
-        };
-
-        var rzp1 = new Razorpay(options);
-        rzp1.open();
-    }
-</script>
 {% endblock %}
