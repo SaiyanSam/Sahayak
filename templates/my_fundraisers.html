@@ -7,7 +7,9 @@
     {% if fundraisers %}
     <div class="fundraiser-grid">
         {% for fundraiser in fundraisers %}
-        <div class="fundraiser-card" style="background: linear-gradient(to top, lightgreen {{ fundraiser.progress_percentage() }}%, #fff {{ fundraiser.progress_percentage() }}%);">
+        <div class="fundraiser-card" style="background: linear-gradient(to top, 
+             {% if fundraiser.flag == 'finished' %}#32a852{% elif fundraiser.flag == 'deleted' %}#f5b7b1{% else %}lightgreen{% endif %} {{ fundraiser.progress_percentage() }}%, 
+             #fff {{ fundraiser.progress_percentage() }}%);">
             <!-- Display Fundraiser Image -->
             {% if fundraiser.image_filename %}
             <img src="{{ url_for('static', filename='uploads/' + fundraiser.image_filename) }}" alt="{{ fundraiser.title }}">
@@ -149,4 +151,3 @@
     }
 </style>
 {% endblock %}
-\
