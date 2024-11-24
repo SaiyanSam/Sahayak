@@ -8,6 +8,9 @@ import os
 from PIL import Image
 import razorpay
 import logging
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 
 app = Flask(__name__)
 
@@ -19,6 +22,12 @@ app.secret_key = 'qwerty'
 basedir = os.path.abspath(os.path.dirname(__file__))
 app.config['SQLALCHEMY_DATABASE_URI'] = f"sqlite:///{os.path.join(basedir, 'instance', 'sahayak.db')}"
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+# Email configuration
+SMTP_SERVER = 'smtp.mail.yahoo.com'
+SMTP_PORT = 587
+EMAIL_ADDRESS = 'saurbhjamwal@yahoo.com'
+EMAIL_PASSWORD = 'yahooID1234@'
 
 db = SQLAlchemy(app)
 
@@ -88,10 +97,39 @@ def home():
 def about():
     return render_template('about.html')
 
-@app.route('/contact')
+@app.route('/contact', methods=['GET', 'POST'])
 def contact():
-    return render_template('contact.html')
+    if request.method == 'POST':
+        name = request.form['name']
+        email = request.form['email']
+        message = request.form['message']
 
+        # Construct the email
+        subject = "Contact Form Message from IITB Sahayak"
+        body = f"Name: {name}\nEmail: {email}\n\nMessage:\n{message}"
+
+        msg = MIMEMultipart()
+        msg['From'] = EMAIL_ADDRESS
+        msg['To'] = 'saurbhjamwal7@gmail.com'
+        msg['Subject'] = subject
+        msg.attach(MIMEText(body, 'plain'))
+
+        try:
+            # Connect to the SMTP server and send the email
+            server = smtplib.SMTP(SMTP_SERVER, SMTP_PORT)
+            server.starttls()
+            server.login(EMAIL_ADDRESS, EMAIL_PASSWORD)
+            server.send_message(msg)
+            server.quit()
+
+            flash("Your message has been sent successfully!", "success")
+        except Exception as e:
+            print(f"Error: {e}")
+            flash("An error occurred while sending your message. Please try again.", "danger")
+
+        return redirect(url_for('contact'))
+
+    return render_template('contact.html')
 
 @app.route('/fundraisers', methods=['GET'])
 def fundraisers():
@@ -138,7 +176,7 @@ def fundraisers():
 @app.route('/my-fundraisers')
 @login_required
 def my_fundraisers():
-    fundraisers = Fundraiser.query.filter_by(user_id=session.get('user_id')).all()
+    fundraisers = Fundraiser.query.filter_by(user_id=session.get('user_id')).order_by(Fundraiser.timestamp.desc()).all()
     return render_template('my_fundraisers.html', fundraisers=fundraisers)
 
 @app.route('/edit-fundraiser/<int:fundraiser_id>', methods=['GET', 'POST'])
