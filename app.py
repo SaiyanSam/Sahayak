@@ -95,10 +95,6 @@ def contact():
 
 @app.route('/fundraisers', methods=['GET'])
 def fundraisers():
-    # Update fundraiser flags
-    #update_fundraiser_flags()
-
-    # Debug: Log all fundraisers and their flags
     all_fundraisers = Fundraiser.query.all()
     for fundraiser in all_fundraisers:
         print(f"Fundraiser ID: {fundraiser.id}, Title: {fundraiser.title}, Flag: {fundraiser.flag}, Total Donated: {fundraiser.total_donated}, Goal: {fundraiser.goal}")
@@ -120,6 +116,7 @@ def fundraisers():
         query = query.filter(
             Fundraiser.title.ilike(f"%{search}%") | Fundraiser.description.ilike(f"%{search}%")
         )
+    category = request.args.get('category', '')
     if category:
         query = query.filter(Fundraiser.category == category)
     if sort == 'goal':
@@ -132,7 +129,7 @@ def fundraisers():
     # Fetch filtered fundraisers
     fundraisers = query.all()
     categories = db.session.query(Fundraiser.category.distinct()).all()
-    
+
     return render_template(
         'fundraisers.html', fundraisers=fundraisers, categories=categories
     )
