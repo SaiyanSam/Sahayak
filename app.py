@@ -297,7 +297,7 @@ def logout():
     flash("Logged out successfully", "success")
     return redirect(url_for('home'))
 
-# Start Fundraiser Route (for requesters)
+# Start Fundraiser Route
 @app.route('/start_fundraiser', methods=['GET', 'POST'])
 @login_required
 def start_fundraiser():
@@ -401,7 +401,7 @@ def payment_success():
     flash("Donation successfully processed!", "success")
 
     # Return success response
-    return jsonify({"status": "success", "redirect": url_for('fundraisers')})
+    return jsonify({"status": "success", "redirect": url_for('fundraisers', _external=True)})
 
 # Donation Route (for donors)
 #@app.route('/donate', methods=['POST'])
